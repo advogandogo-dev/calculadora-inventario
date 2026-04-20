@@ -1295,21 +1295,47 @@ function saveLead(){
   leads.push(lead);
   localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
 
-  // ── Google Sheets Webhook (GET via iframe — contorna CORS) ──
-  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxy6AaZvbKOvFtoigAJ1vlLxzAv0PZx7tWC3PgUixwgcNhp0iaaldMenILEfUfOKqkQDQ/exec';
+  // ── Google Sheets Webhook (form POST — contorna redirect do GAS) ──
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxLXFk5doX6xvL7Z2VwR-dQulq_h6ENV8WLAPsxBdky6D_uDrj5rUMX-ggFUEZxxd4trA/exec';
   if(SHEETS_URL){
     try{
-      // Serializa o lead como query string e dispara via iframe oculto
-      // O Apps Script recebe doGet(e) com e.parameter — sem bloqueio de CORS
-      const params = Object.entries(lead)
-        .map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v??''))
-        .join('&');
-      const url = SHEETS_URL + '?' + params;
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'display:none;width:0;height:0;border:0';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      setTimeout(()=>{ try{document.body.removeChild(iframe);}catch(e){} }, 10000);
+      // Cria um <form> invisível com method POST e target em iframe oculto.
+      // O browser segue o redirect 302 do GAS automaticamente e envia o body.
+      // Não há bloqueio de CORS porque não lemos a resposta.
+      const uid = '_gsf_' + Date.now();
+      const ifrm = document.createElement('iframe');
+      ifrm.name = uid;
+      ifrm.style.cssText = 'display:none;width:0;height:0;border:0';
+      document.body.appendChild(ifrm);
+
+      const frm = document.createElement('form');
+      frm.method  = 'POST';
+      frm.action  = SHEETS_URL;
+      frm.target  = uid;
+      frm.enctype = 'application/x-www-form-urlencoded';
+      frm.style.display = 'none';
+
+      // Adiciona cada campo do lead como input hidden
+      Object.entries(lead).forEach(([k, v]) => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = k;
+        inp.value = v ?? '';
+        frm.appendChild(inp);
+      });
+
+      // Campo extra para o script identificar que é um lead real
+      const sig = document.createElement('input');
+      sig.type = 'hidden'; sig.name = 'source'; sig.value = 'simulador';
+      frm.appendChild(sig);
+
+      document.body.appendChild(frm);
+      frm.submit();
+
+      // Limpa após 15s
+      setTimeout(() => {
+        try { document.body.removeChild(frm); document.body.removeChild(ifrm); } catch(e){}
+      }, 15000);
     } catch(err){ console.warn('Sheets webhook error:', err); }
   }
 }
