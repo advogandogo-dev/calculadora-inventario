@@ -1296,7 +1296,7 @@ function saveLead(){
   localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
 
   // ── Google Sheets Webhook (form POST — contorna redirect do GAS) ──
-  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxLXFk5doX6xvL7Z2VwR-dQulq_h6ENV8WLAPsxBdky6D_uDrj5rUMX-ggFUEZxxd4trA/exec';
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxVMuEaTFOJx-knAt6gY5xLgLqtoddZAjdfS_hti3F7Yurgqb9RrX1IBJJ5cFs3XoQ__A/exec';
   if(SHEETS_URL){
     try{
       // Cria um <form> invisível com method POST e target em iframe oculto.
